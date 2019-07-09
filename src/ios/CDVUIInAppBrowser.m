@@ -138,6 +138,23 @@ static CDVUIInAppBrowser* instance = nil;
                 [storage deleteCookie:cookie];
             }
         }
+        
+        NSMutableDictionary *clearDict = [NSMutableDictionary dictionary];
+        [[NSUserDefaults standardUserDefaults] setObject:clearDict forKey:@"allCookies"];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+    } else {
+        // Load cookies from userDefaults
+        NSDictionary* cookieDictionary = [[NSUserDefaults standardUserDefaults] dictionaryForKey:@"allCookies"];
+        if(cookieDictionary != nil) {
+            for(id key in cookieDictionary.allKeys) {
+                NSDictionary* cookieProperties = [cookieDictionary valueForKey: key];
+                if(cookieProperties != nil) {
+                    NSHTTPCookie* cookie = [NSHTTPCookie cookieWithProperties:cookieProperties];
+                    NSLog(@"%@", cookie);
+                    [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookie:cookie];
+                }
+            }
+        }
     }
 
     if (browserOptions.clearsessioncache) {
@@ -597,6 +614,9 @@ static CDVUIInAppBrowser* instance = nil;
         [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
         self.callbackId = nil;
     }
+    
+    [self.inAppBrowserViewController saveCookies];
+    
     // Set navigationDelegate to nil to ensure no callbacks are received from it.
     self.inAppBrowserViewController.navigationDelegate = nil;
     // Don't recycle the ViewController since it may be consuming a lot of memory.
@@ -910,6 +930,34 @@ static CDVUIInAppBrowser* instance = nil;
         } else {
             // no locationBar, expand webView to screen dimensions
             [self setWebViewFrame:self.view.bounds];
+        }
+    }
+}
+
+- (void)saveCookies {
+    
+    if(_browserOptions.savecookies) {
+        
+        NSArray* allCookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookies];
+        
+        if(allCookies != nil) {
+            NSMutableDictionary* cookieDictionary = [NSMutableDictionary dictionary];
+            
+            for(int i = 0; i < [allCookies count]; i++) {
+                NSHTTPCookie *cookie = allCookies[i];
+                NSMutableDictionary *properties = [NSMutableDictionary dictionary];
+                [properties setValue:cookie.name forKey: NSHTTPCookieName];
+                [properties setValue:cookie.domain forKey: NSHTTPCookieDomain];
+                [properties setValue:cookie.path forKey: NSHTTPCookiePath];
+                [properties setValue:[NSNumber numberWithInt:(int)cookie.version] forKey: NSHTTPCookieVersion];
+                [properties setValue:[[NSDate date] dateByAddingTimeInterval:31536000] forKey: NSHTTPCookieExpires];
+                [properties setValue:cookie.value forKey: NSHTTPCookieValue];
+                
+                [cookieDictionary setValue:properties forKey: [@(i) stringValue]];
+            }
+            
+            [[NSUserDefaults standardUserDefaults] setObject:cookieDictionary forKey:@"allCookies"];
+            [[NSUserDefaults standardUserDefaults] synchronize];
         }
     }
 }

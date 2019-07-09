@@ -34,6 +34,7 @@
         self.clearcache = NO;
         self.clearsessioncache = NO;
         self.hidespinner = NO;
+        self.savecookies = NO;
 
         self.enableviewportscale = NO;
         self.mediaplaybackrequiresuseraction = NO;
