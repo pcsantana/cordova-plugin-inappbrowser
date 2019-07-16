@@ -130,6 +130,7 @@ public class InAppBrowser extends CordovaPlugin {
     private static final String FOOTER = "footer";
     private static final String FOOTER_COLOR = "footercolor";
     private static final String BEFORELOAD = "beforeload";
+    private static final String VALIDATE_SSL = "validatessl";
 
     private static final List customizableOptions = Arrays.asList(CLOSE_BUTTON_CAPTION, TOOLBAR_COLOR, NAVIGATION_COLOR, CLOSE_BUTTON_COLOR, FOOTER_COLOR);
 
@@ -162,6 +163,7 @@ public class InAppBrowser extends CordovaPlugin {
     private String beforeload = "";
     private String[] allowedSchemes;
     private InAppBrowserClient currentClient;
+    private boolean validateSsl = true;
 
     private String mCM;
 
@@ -647,6 +649,7 @@ public class InAppBrowser extends CordovaPlugin {
         showZoomControls = true;
         openWindowHidden = false;
         mediaPlaybackRequiresUserGesture = false;
+        validateSsl = true;
 
         if (features != null) {
             String show = features.get(LOCATION);
@@ -666,6 +669,10 @@ public class InAppBrowser extends CordovaPlugin {
             String hidden = features.get(HIDDEN);
             if (hidden != null) {
                 openWindowHidden = hidden.equals("yes") ? true : false;
+            }
+            String sslValidation = features.get(VALIDATE_SSL);
+            if(sslValidation != null) {
+                validateSsl = sslValidation.equals("yes") ? true : false;
             }
             String hardwareBack = features.get(HARDWARE_BACK_BUTTON);
             if (hardwareBack != null) {
@@ -1036,6 +1043,7 @@ public class InAppBrowser extends CordovaPlugin {
 
                 });
                 currentClient = new InAppBrowserClient(thatWebView, edittext, beforeload);
+                currentClient.setSslValidationFlag(validateSsl);
                 inAppWebView.setWebViewClient(currentClient);
                 WebSettings settings = inAppWebView.getSettings();
                 settings.setJavaScriptEnabled(true);
@@ -1237,6 +1245,7 @@ public class InAppBrowser extends CordovaPlugin {
         CordovaWebView webView;
         String beforeload;
         boolean waitForBeforeload;
+        boolean validateSsl = true;
 
         /**
          * Constructor.
@@ -1253,24 +1262,15 @@ public class InAppBrowser extends CordovaPlugin {
 
         @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-            final String packageName = cordova.getActivity().getPackageName();
-            final PackageManager pm = cordova.getActivity().getPackageManager();
-
-            ApplicationInfo appInfo;
-            try {
-                appInfo = pm.getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-                if ((appInfo.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                    // debug = true
-                    handler.proceed();
-                    return;
-                } else {
-                    // debug = false
-                    super.onReceivedSslError(view, handler, error);
-                }
-            } catch (PackageManager.NameNotFoundException e) {
-                // When it doubt, lock it out!
+            if (this.validateSsl) {
                 super.onReceivedSslError(view, handler, error);
+            } else {
+                handler.proceed();
             }
+        }
+
+        public void setSslValidationFlag(boolean flag) {
+            this.validateSsl = flag;
         }
 
         /**

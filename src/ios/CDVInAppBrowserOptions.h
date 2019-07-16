@@ -36,6 +36,7 @@
 @property (nonatomic, assign) BOOL clearsessioncache;
 @property (nonatomic, assign) BOOL hidespinner;
 @property (nonatomic, assign) BOOL savecookies;
+@property (nonatomic, assign) BOOL validatessl;
 
 @property (nonatomic, copy) NSString* presentationstyle;
 @property (nonatomic, copy) NSString* transitionstyle;

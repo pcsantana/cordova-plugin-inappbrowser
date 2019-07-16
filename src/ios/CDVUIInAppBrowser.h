@@ -53,7 +53,7 @@
 
 @end
 
-@interface CDVUIInAppBrowserViewController : UIViewController <UIWebViewDelegate, CDVScreenOrientationDelegate>{
+@interface CDVUIInAppBrowserViewController : UIViewController <UIWebViewDelegate, CDVScreenOrientationDelegate, NSURLConnectionDataDelegate>{
     @private
     NSString* _userAgent;
     NSString* _prevUserAgent;
@@ -79,6 +79,8 @@
 @property (nonatomic, weak) id <CDVScreenOrientationDelegate> orientationDelegate;
 @property (nonatomic, weak) CDVUIInAppBrowser* navigationDelegate;
 @property (nonatomic) NSURL* currentURL;
+@property (nonatomic, weak) NSURLRequest* urlRequest;
+@property (nonatomic, assign) BOOL validateSsl;
 
 - (void)close;
 - (void)navigateTo:(NSURL*)url;

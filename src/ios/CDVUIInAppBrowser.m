@@ -244,6 +244,9 @@ static CDVUIInAppBrowser* instance = nil;
     }
     _waitForBeforeload = ![_beforeload isEqualToString:@""];
 
+    // SSL certificate error option
+    [self.inAppBrowserViewController setValidateSsl:browserOptions.validatessl];
+
     [self.inAppBrowserViewController navigateTo:url];
     if (!browserOptions.hidden) {
         [self show:nil];
@@ -1098,7 +1101,20 @@ static CDVUIInAppBrowser* instance = nil;
     if (isTopLevelNavigation) {
         self.currentURL = request.URL;
     }
-    return [self.navigationDelegate webView:theWebView shouldStartLoadWithRequest:request navigationType:navigationType];
+    // return [self.navigationDelegate webView:theWebView shouldStartLoadWithRequest:request navigationType:navigationType];
+
+    //BOOL isSecuredUrl = [[request.URL scheme] isEqualToString:@"https"];
+    //if (isSecuredUrl && self.validateSsl == NO) {
+    if (self.validateSsl == NO) {
+        // Ignore SSL certificate validation. This option can be used for loading self-signed https URLs
+        // in the InAppBrowser. Stop the default load request and load the URL through NSURLConnection
+        self.urlRequest = request;
+        NSURLConnection* connection = [[NSURLConnection alloc] initWithRequest:request delegate:self];
+        NSLog(@"Ignoring SSL certificate validation and loading URL: %@", [[connection currentRequest] URL]);
+        return NO;
+    } else {
+        return [self.navigationDelegate webView:theWebView shouldStartLoadWithRequest:request navigationType:navigationType];
+    }
 }
 
 - (void)webViewDidFinishLoad:(UIWebView*)theWebView
@@ -1142,6 +1158,23 @@ static CDVUIInAppBrowser* instance = nil;
     self.addressLabel.text = NSLocalizedString(@"Load Error", nil);
 
     [self.navigationDelegate webView:theWebView didFailLoadWithError:error];
+}
+
+# pragma mark - NSURLConnectionDataDelegate methods
+
+- (void) connection:(NSURLConnection *)connection willSendRequestForAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
+{
+    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
+        [challenge.sender useCredential:[NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust] forAuthenticationChallenge:challenge];
+    }
+    [challenge.sender continueWithoutCredentialForAuthenticationChallenge:challenge];
+}
+
+- (void) connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
+{
+    self.validateSsl = YES;
+    [connection cancel];
+    [self.webView loadRequest:self.urlRequest];
 }
 
 #pragma mark CDVScreenOrientationDelegate
