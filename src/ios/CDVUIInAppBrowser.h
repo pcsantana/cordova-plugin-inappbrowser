@@ -81,6 +81,7 @@
 @property (nonatomic) NSURL* currentURL;
 @property (nonatomic, weak) NSURLRequest* urlRequest;
 @property (nonatomic, assign) BOOL validateSsl;
+@property (nonatomic, assign) BOOL viewRenderedAtLeastOnce;
 
 - (void)close;
 - (void)navigateTo:(NSURL*)url;

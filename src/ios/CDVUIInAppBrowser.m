@@ -29,7 +29,7 @@
 #define    kInAppBrowserToolbarBarPositionTop @"top"
 
 #define    TOOLBAR_HEIGHT 44.0
-#define    STATUSBAR_HEIGHT 20.0
+//#define    STATUSBAR_HEIGHT 20.0
 #define    LOCATIONBAR_HEIGHT 21.0
 #define    FOOTER_HEIGHT ((TOOLBAR_HEIGHT) + (LOCATIONBAR_HEIGHT))
 
@@ -150,7 +150,6 @@ static CDVUIInAppBrowser* instance = nil;
                 NSDictionary* cookieProperties = [cookieDictionary valueForKey: key];
                 if(cookieProperties != nil) {
                     NSHTTPCookie* cookie = [NSHTTPCookie cookieWithProperties:cookieProperties];
-                    NSLog(@"%@", cookie);
                     [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookie:cookie];
                 }
             }
@@ -798,7 +797,7 @@ static CDVUIInAppBrowser* instance = nil;
         [self.toolbar setItems:@[self.closeButton, flexibleSpaceButton, self.backButton, fixedSpaceButton, self.forwardButton]];
     }
 
-    self.view.backgroundColor = [UIColor grayColor];
+    self.view.backgroundColor = [UIColor whiteColor];
     [self.view addSubview:self.toolbar];
     [self.view addSubview:self.addressLabel];
     [self.view addSubview:self.spinner];
@@ -909,7 +908,6 @@ static CDVUIInAppBrowser* instance = nil;
         if ([toolbarPosition isEqualToString:kInAppBrowserToolbarBarPositionTop]) {
             toolbarFrame.origin.y = 0;
             webViewBounds.origin.y += toolbarFrame.size.height;
-            [self setWebViewFrame:webViewBounds];
         } else {
             toolbarFrame.origin.y = (webViewBounds.size.height + LOCATIONBAR_HEIGHT);
         }
@@ -967,6 +965,7 @@ static CDVUIInAppBrowser* instance = nil;
 
 - (void)viewDidLoad
 {
+    self.viewRenderedAtLeastOnce = FALSE;
     [super viewDidLoad];
 }
 
@@ -1039,7 +1038,18 @@ static CDVUIInAppBrowser* instance = nil;
 
 - (void)viewWillAppear:(BOOL)animated
 {
-    if (IsAtLeastiOSVersion(@"7.0")) {
+    if (IsAtLeastiOSVersion(@"7.0") && !self.viewRenderedAtLeastOnce) {
+        self.viewRenderedAtLeastOnce = TRUE;
+        CGRect viewBounds = [self.webView bounds];
+        // viewBounds.origin.y = STATUSBAR_HEIGHT;
+        // viewBounds.size.height = viewBounds.size.height - STATUSBAR_HEIGHT;
+        
+        CGRect statusBarFrame = [UIApplication sharedApplication].statusBarFrame;
+        CGFloat statusBarHeight = statusBarFrame.size.height;
+        
+        viewBounds.origin.y = statusBarHeight;
+        viewBounds.size.height = viewBounds.size.height - statusBarHeight;
+        self.webView.frame = viewBounds;
         [[UIApplication sharedApplication] setStatusBarStyle:[self preferredStatusBarStyle]];
     }
     [self rePositionViews];
@@ -1060,7 +1070,8 @@ static CDVUIInAppBrowser* instance = nil;
 
 - (void) rePositionViews {
     if ([_browserOptions.toolbarposition isEqualToString:kInAppBrowserToolbarBarPositionTop]) {
-        [self.webView setFrame:CGRectMake(self.webView.frame.origin.x, TOOLBAR_HEIGHT, self.webView.frame.size.width, self.webView.frame.size.height)];
+        CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
+        [self.webView setFrame:CGRectMake(self.webView.frame.origin.x, TOOLBAR_HEIGHT + statusBarFrame.size.height, self.webView.frame.size.width, self.webView.frame.size.height)];
         [self.toolbar setFrame:CGRectMake(self.toolbar.frame.origin.x, [self getStatusBarOffset], self.toolbar.frame.size.width, self.toolbar.frame.size.height)];
     }
 }
